@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Free Video/MP3 Downloader</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background: #f4f4f4; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: inline-block; }
+        .btn { display: block; margin: 10px auto; padding: 10px 20px; cursor: pointer; text-decoration: none; color: white; border-radius: 5px; }
+        .mp4 { background: #007bff; } .mp3 { background: #28a745; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Upload Video</h2>
+        <input type="file" id="fileInput">
+        <button onclick="startUpload()">Upload & Process</button>
+        
+        <div id="loader" style="display:none;">Processing... Please wait...</div>
+        
+        <div id="downloadLinks" style="display:none; margin-top:20px;">
+            <h3>Download Ready:</h3>
+            <a id="low" class="btn mp4">Download 360p (MP4)</a>
+            <a id="high" class="btn mp4">Download 720p (MP4)</a>
+            <a id="audio" class="btn mp3">Download Audio (MP3)</a>
+        </div>
+    </div>
+
+    <script>
+        async function startUpload() {
+            const file = document.getElementById('fileInput').files[0];
+            if(!file) return alert("Select a file first!");
+
+            document.getElementById('loader').style.display = 'block';
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const res = await fetch('/upload', { method: 'POST', body: formData });
+            const data = await res.json();
+
+            if(data.success) {
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('downloadLinks').style.display = 'block';
+                document.getElementById('low').href = data.links.v360p;
+                document.getElementById('high').href = data.links.v720p;
+                document.getElementById('audio').href = data.links.mp3;
+            }
+        }
+    </script>
+</body>
+</html>
