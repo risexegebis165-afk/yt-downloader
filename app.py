@@ -5,8 +5,8 @@ import os
 
 app = Flask(__name__)
 
-# YouTube API Key
-API_KEY = "AIzaSyAj_ZB8T0SQVi05MYQAfYEnf-T9LlcuFks"
+# আপনার দেওয়া YouTube API Key
+API_KEY = "AIzaSyAj_ZB8TOSQViO5MYQAfYEnf-T9LlcuFks"
 
 @app.route('/')
 def index():
@@ -14,10 +14,18 @@ def index():
 
 @app.route('/api/search', methods=['POST'])
 def search_videos():
-    query = request.json.get('query', 'trending songs')
-    url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15&q={query}&type=video&key={API_KEY}"
+    query = request.json.get('query', 'new bangla song')
+    # YouTube Search API URL
+    url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q={query}&type=video&key={API_KEY}"
+    
     try:
         response = requests.get(url).json()
+        
+        # API Error চেক করার জন্য (Logs এ দেখা যাবে)
+        if 'error' in response:
+            print(f"YouTube API Error: {response['error']['message']}")
+            return jsonify([])
+
         videos = []
         for item in response.get('items', []):
             if 'videoId' in item['id']:
@@ -29,6 +37,7 @@ def search_videos():
                 })
         return jsonify(videos)
     except Exception as e:
+        print(f"Search Exception: {str(e)}")
         return jsonify([])
 
 @app.route('/api/get_formats', methods=['POST'])
@@ -37,10 +46,9 @@ def get_formats():
     url = f"https://www.youtube.com/watch?v={video_id}"
     try:
         ydl_opts = {
-            'quiet': True, 
+            'quiet': True,
             'no_warnings': True,
             'format': 'best',
-            # Render এ অনেক সময় কুকি ইস্যু হয়, তাই এই অপশনটি জরুরি
             'nocheckcertificate': True
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -49,30 +57,21 @@ def get_formats():
             audio_formats = []
 
             for f in info.get('formats', []):
-                # Video + Audio (MP4) Filter
+                # Video + Audio Filter
                 if f.get('vcodec') != 'none' and f.get('acodec') != 'none' and f.get('ext') == 'mp4':
                     res = f.get('height')
-                    if res in [1080, 720, 360]:
-                        video_formats.append({
-                            'quality': f'{res}p',
-                            'url': f.get('url')
-                        })
+                    if res in [1080, 720, 480, 360]:
+                        video_formats.append({'quality': f'{res}p', 'url': f.get('url')})
                 
                 # Audio Only Filter
                 if f.get('vcodec') == 'none' and f.get('abr'):
-                    audio_formats.append({
-                        'quality': f"{int(f.get('abr'))}kbps",
-                        'url': f.get('url')
-                    })
+                    audio_formats.append({'quality': f"{int(f.get('abr'))}kbps", 'url': f.get('url')})
 
-            # ডুপ্লিকেট রিমুভ করা
             unique_v = list({v['quality']: v for v in video_formats}.values())
-            
-            # ভিডিও প্লে করার জন্য ডিফল্ট ইউআরএল
-            default_play = unique_v[0]['url'] if unique_v else (info.get('url') if info.get('url') else "")
+            default_play = unique_v[0]['url'] if unique_v else info.get('url')
 
             return jsonify({
-                'title': info.get('title', 'No Title'),
+                'title': info.get('title'),
                 'playUrl': default_play,
                 'video': sorted(unique_v, key=lambda x: int(x['quality'][:-1]), reverse=True),
                 'audio': sorted(audio_formats, key=lambda x: int(x['quality'][:-4]), reverse=True)
@@ -81,6 +80,6 @@ def get_formats():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    # Render বা হোস্টিং সার্ভারের জন্য পোর্ট কনফিগারেশন
+    # Render.com এর জন্য পোর্ট সেটিংস
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
