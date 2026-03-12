@@ -3,81 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Premium Pro</title>
+    <title>Premium YT Downloader</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { background-color: #000; color: #fff; font-family: sans-serif; }
-        .v-container { width: 100%; aspect-ratio: 16/9; background: #111; }
-        video { width: 100%; height: 100%; object-fit: contain; }
-        .quality-btn { background: #222; border: 1px solid #333; padding: 5px 12px; border-radius: 6px; font-size: 11px; transition: 0.3s; white-space: nowrap; }
-        .quality-btn:active { transform: scale(0.9); background: #ff0000; }
+        body { background-color: #050505; color: #fff; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(12px); border-bottom: 1px solid #222; }
+        .v-card { transition: 0.3s; border: 1px solid #1a1a1a; }
+        .v-card:active { transform: scale(0.97); }
+        .quality-btn { background: #1a1a1a; border: 1px solid #333; padding: 6px 14px; border-radius: 8px; font-size: 12px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .glass-header { background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 50; }
     </style>
 </head>
-<body class="pb-24">
+<body class="pb-10">
 
-    <header id="mainHeader" class="glass-header p-4 flex items-center justify-between">
-        <h1 class="text-xl font-bold text-red-600 tracking-tighter">
-            <i class="fa-brands fa-youtube mr-1 text-2xl"></i> PREMIUM
-        </h1>
-        <div class="flex-1 max-w-md mx-4 bg-zinc-900 rounded-full flex items-center px-4 py-2 border border-zinc-800">
-            <input id="q" type="text" placeholder="Search videos..." class="bg-transparent w-full outline-none text-sm">
-            <button onclick="search()"><i class="fa-solid fa-magnifying-glass text-zinc-500"></i></button>
+    <header class="glass sticky top-0 z-50 p-4 flex items-center justify-between">
+        <div class="flex items-center gap-1 text-red-600 font-black text-xl italic">
+            <i class="fa-brands fa-youtube text-2xl"></i> PREMIUM
         </div>
-        <div class="w-8 h-8 bg-gradient-to-tr from-red-500 to-purple-600 rounded-full"></div>
+        <div class="flex-1 max-w-sm mx-4 relative">
+            <input id="q" type="text" placeholder="Search videos..." 
+                class="w-full bg-zinc-900 border border-zinc-800 rounded-full py-2 px-5 text-sm outline-none focus:border-red-600">
+            <button onclick="search()" class="absolute right-4 top-2.5 text-zinc-500">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+        </div>
+        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500"></div>
     </header>
 
-    <div id="playerSection" class="hidden sticky top-[68px] z-40 bg-black shadow-2xl">
-        <div class="v-container">
-            <video id="mainVideo" controls autoplay playsinline></video>
+    <div id="playerBox" class="hidden sticky top-[73px] z-40 bg-black">
+        <div class="aspect-video w-full bg-zinc-900">
+            <video id="mainVideo" controls autoplay playsinline class="w-full h-full"></video>
         </div>
-        <div class="p-4 bg-zinc-900/95 border-b border-zinc-800">
-            <h2 id="videoTitle" class="text-sm font-bold line-clamp-2 mb-3">Video Title Loading...</h2>
-            
+        <div class="p-4 bg-zinc-900/50">
+            <h2 id="videoTitle" class="text-sm font-bold line-clamp-2 mb-4">Loading...</h2>
             <div class="space-y-4">
                 <div>
-                    <p class="text-[10px] text-zinc-500 uppercase font-bold mb-2 tracking-widest">Video Quality</p>
+                    <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2">Video Quality</p>
                     <div id="vOptions" class="flex gap-2 overflow-x-auto no-scrollbar"></div>
                 </div>
                 <div>
-                    <p class="text-[10px] text-zinc-500 uppercase font-bold mb-2 tracking-widest">Audio Quality</p>
+                    <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2">Audio Only</p>
                     <div id="aOptions" class="flex gap-2 overflow-x-auto no-scrollbar"></div>
                 </div>
             </div>
         </div>
-    </div>
+    </header>
 
-    <main id="feed" class="p-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
-        <div class="text-center py-20 text-zinc-600 col-span-full">
-            <p>Search for your favorite videos</p>
+    <main id="feed" class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div class="col-span-full text-center py-20 text-zinc-700">
+            <i class="fa-solid fa-bolt text-5xl mb-4"></i>
+            <p>Type something to search...</p>
         </div>
     </main>
 
     <script>
-        // অটোমেটিক সার্চ লোড হওয়ার জন্য
-        window.onload = () => { search(); };
+        // পেজ লোড হলে ডিফল্ট সার্চ
+        window.onload = () => { search('trending bangla'); };
 
-        async function search() {
-            const query = document.getElementById('q').value || 'new bangla song';
+        async function search(val) {
+            const query = val || document.getElementById('q').value;
+            if(!query) return;
+
             const feed = document.getElementById('feed');
-            feed.innerHTML = '<p class="text-center py-10 col-span-full">Searching...</p>';
-            
+            feed.innerHTML = '<p class="col-span-full text-center text-zinc-500">Searching YouTube...</p>';
+
             const res = await fetch('/api/search', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({query: query})
             });
             const videos = await res.json();
-            
+
             feed.innerHTML = '';
+            if(videos.length === 0) {
+                feed.innerHTML = '<p class="col-span-full text-center text-red-500">No videos found. Check API Key.</p>';
+                return;
+            }
+
             videos.forEach(v => {
                 feed.innerHTML += `
-                    <div class="bg-zinc-900/50 rounded-xl overflow-hidden border border-zinc-800/50" onclick="play('${v.videoId}', '${v.title.replace(/'/g, "")}')">
+                    <div class="v-card rounded-2xl overflow-hidden bg-zinc-900/30" onclick="playVideo('${v.videoId}', '${v.title.replace(/'/g, "")}')">
                         <img src="${v.thumbnail}" class="w-full aspect-video object-cover">
                         <div class="p-3">
-                            <h3 class="text-xs font-medium line-clamp-2">${v.title}</h3>
+                            <h3 class="text-xs font-semibold line-clamp-2">${v.title}</h3>
                             <p class="text-[10px] text-zinc-500 mt-1">${v.channel}</p>
                         </div>
                     </div>
@@ -85,15 +94,15 @@
             });
         }
 
-        async function play(id, title) {
-            document.getElementById('playerSection').classList.remove('hidden');
+        async function playVideo(id, title) {
+            document.getElementById('playerBox').classList.remove('hidden');
             document.getElementById('videoTitle').innerText = title;
             window.scrollTo({top: 0, behavior: 'smooth'});
 
             const vOptions = document.getElementById('vOptions');
             const aOptions = document.getElementById('aOptions');
-            vOptions.innerHTML = '<span class="text-xs">Loading formats...</span>';
-            aOptions.innerHTML = '<span class="text-xs">Loading formats...</span>';
+            vOptions.innerHTML = '...';
+            aOptions.innerHTML = '...';
 
             const res = await fetch('/api/get_formats', {
                 method: 'POST',
@@ -101,34 +110,36 @@
                 body: JSON.stringify({videoId: id})
             });
             const data = await res.json();
-            
+
             if(data.playUrl) {
-                const videoElement = document.getElementById('mainVideo');
-                videoElement.src = data.playUrl;
-                videoElement.play();
+                const video = document.getElementById('mainVideo');
+                video.src = data.playUrl;
+                video.play();
             }
 
             vOptions.innerHTML = data.video.map(f => `
-                <button onclick="changeQ('${f.url}')" class="quality-btn">${f.quality}</button>
-                <a href="${f.url}" download class="quality-btn"><i class="fa-solid fa-download"></i></a>
+                <div class="flex flex-col gap-1">
+                    <button onclick="changeSource('${f.url}')" class="quality-btn text-blue-400">Play ${f.quality}</button>
+                    <a href="${f.url}" download class="quality-btn text-center text-green-500"><i class="fa-solid fa-download"></i></a>
+                </div>
             `).join('');
 
             aOptions.innerHTML = data.audio.map(f => `
-                <a href="${f.url}" target="_blank" class="quality-btn"><i class="fa-solid fa-music mr-1"></i> ${f.quality}</a>
+                <a href="${f.url}" target="_blank" class="quality-btn text-orange-400"><i class="fa-solid fa-music mr-1"></i> ${f.quality}</a>
             `).join('');
         }
 
-        function changeQ(url) {
+        function changeSource(url) {
             const v = document.getElementById('mainVideo');
-            const time = v.currentTime;
+            const currentTime = v.currentTime;
             v.src = url;
-            v.currentTime = time;
+            v.currentTime = currentTime;
             v.play();
         }
 
-        // Enter বাটন প্রেস করলে সার্চ হবে
-        document.getElementById('q').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') { search(); }
+        // Enter key press search
+        document.getElementById('q').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') search();
         });
     </script>
 </body>
