@@ -3,64 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Premium Downloader</title>
+    <title>YouTube Premium Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { background: #0f0f0f; color: white; }
-        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        body { background-color: #000; color: #fff; font-family: sans-serif; }
+        .v-container { width: 100%; aspect-ratio: 16/9; background: #111; }
+        video { width: 100%; height: 100%; object-fit: contain; }
+        .quality-btn { background: #222; border: 1px solid #333; padding: 5px 12px; border-radius: 6px; font-size: 11px; transition: 0.3s; white-space: nowrap; }
+        .quality-btn:active { transform: scale(0.9); background: #ff0000; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .glass-header { background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 50; }
     </style>
 </head>
-<body class="p-4">
-    <div class="max-w-md mx-auto">
-        <h1 class="text-2xl font-bold text-red-600 mb-6 text-center">Premium YT Downloader</h1>
-        
-        <div class="flex gap-2 mb-8">
-            <input id="searchInput" type="text" placeholder="Search video..." class="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800 outline-none">
-            <button onclick="search()" class="bg-red-600 px-6 py-3 rounded-lg font-bold">Search</button>
-        </div>
+<body class="pb-24">
 
-        <div id="videoGrid" class="grid gap-4">
+    <header id="mainHeader" class="glass-header p-4 flex items-center justify-between">
+        <h1 class="text-xl font-bold text-red-600 tracking-tighter">
+            <i class="fa-brands fa-youtube mr-1 text-2xl"></i> PREMIUM
+        </h1>
+        <div class="flex-1 max-w-md mx-4 bg-zinc-900 rounded-full flex items-center px-4 py-2 border border-zinc-800">
+            <input id="q" type="text" placeholder="Search videos..." class="bg-transparent w-full outline-none text-sm">
+            <button onclick="search()"><i class="fa-solid fa-magnifying-glass text-zinc-500"></i></button>
+        </div>
+        <div class="w-8 h-8 bg-gradient-to-tr from-red-500 to-purple-600 rounded-full"></div>
+    </header>
+
+    <div id="playerSection" class="hidden sticky top-[68px] z-40 bg-black shadow-2xl">
+        <div class="v-container">
+            <video id="mainVideo" controls autoplay playsinline></video>
+        </div>
+        <div class="p-4 bg-zinc-900/95 border-b border-zinc-800">
+            <h2 id="videoTitle" class="text-sm font-bold line-clamp-2 mb-3">Video Title Loading...</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <p class="text-[10px] text-zinc-500 uppercase font-bold mb-2 tracking-widest">Video Quality</p>
+                    <div id="vOptions" class="flex gap-2 overflow-x-auto no-scrollbar"></div>
+                </div>
+                <div>
+                    <p class="text-[10px] text-zinc-500 uppercase font-bold mb-2 tracking-widest">Audio Quality</p>
+                    <div id="aOptions" class="flex gap-2 overflow-x-auto no-scrollbar"></div>
+                </div>
             </div>
+        </div>
     </div>
 
+    <main id="feed" class="p-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+        <div class="text-center py-20 text-zinc-600 col-span-full">
+            <p>Search for your favorite videos</p>
+        </div>
+    </main>
+
     <script>
+        // অটোমেটিক সার্চ লোড হওয়ার জন্য
+        window.onload = () => { search(); };
+
         async function search() {
-            const query = document.getElementById('searchInput').value;
-            const grid = document.getElementById('videoGrid');
-            grid.innerHTML = '<p class="text-center">Searching...</p>';
+            const query = document.getElementById('q').value || 'new bangla song';
+            const feed = document.getElementById('feed');
+            feed.innerHTML = '<p class="text-center py-10 col-span-full">Searching...</p>';
             
             const res = await fetch('/api/search', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({query})
+                body: JSON.stringify({query: query})
             });
             const videos = await res.json();
             
-            grid.innerHTML = '';
+            feed.innerHTML = '';
             videos.forEach(v => {
-                grid.innerHTML += `
-                    <div class="glass p-3 rounded-xl flex gap-3 cursor-pointer" onclick="getFormats('${v.videoId}')">
-                        <img src="${v.thumbnail}" class="w-32 rounded-lg">
-                        <div>
-                            <h3 class="text-sm font-semibold line-clamp-2">${v.title}</h3>
-                            <p class="text-xs text-zinc-400 mt-1">${v.channel}</p>
+                feed.innerHTML += `
+                    <div class="bg-zinc-900/50 rounded-xl overflow-hidden border border-zinc-800/50" onclick="play('${v.videoId}', '${v.title.replace(/'/g, "")}')">
+                        <img src="${v.thumbnail}" class="w-full aspect-video object-cover">
+                        <div class="p-3">
+                            <h3 class="text-xs font-medium line-clamp-2">${v.title}</h3>
+                            <p class="text-[10px] text-zinc-500 mt-1">${v.channel}</p>
                         </div>
                     </div>
                 `;
             });
         }
 
-        async function getFormats(id) {
-            alert('Loading formats... Please wait.');
+        async function play(id, title) {
+            document.getElementById('playerSection').classList.remove('hidden');
+            document.getElementById('videoTitle').innerText = title;
+            window.scrollTo({top: 0, behavior: 'smooth'});
+
+            const vOptions = document.getElementById('vOptions');
+            const aOptions = document.getElementById('aOptions');
+            vOptions.innerHTML = '<span class="text-xs">Loading formats...</span>';
+            aOptions.innerHTML = '<span class="text-xs">Loading formats...</span>';
+
             const res = await fetch('/api/get_formats', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({videoId: id})
             });
             const data = await res.json();
-            console.log(data);
-            alert('Title: ' + data.title + '\nCheck console for all links!');
+            
+            if(data.playUrl) {
+                const videoElement = document.getElementById('mainVideo');
+                videoElement.src = data.playUrl;
+                videoElement.play();
+            }
+
+            vOptions.innerHTML = data.video.map(f => `
+                <button onclick="changeQ('${f.url}')" class="quality-btn">${f.quality}</button>
+                <a href="${f.url}" download class="quality-btn"><i class="fa-solid fa-download"></i></a>
+            `).join('');
+
+            aOptions.innerHTML = data.audio.map(f => `
+                <a href="${f.url}" target="_blank" class="quality-btn"><i class="fa-solid fa-music mr-1"></i> ${f.quality}</a>
+            `).join('');
         }
+
+        function changeQ(url) {
+            const v = document.getElementById('mainVideo');
+            const time = v.currentTime;
+            v.src = url;
+            v.currentTime = time;
+            v.play();
+        }
+
+        // Enter বাটন প্রেস করলে সার্চ হবে
+        document.getElementById('q').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') { search(); }
+        });
     </script>
 </body>
 </html>
